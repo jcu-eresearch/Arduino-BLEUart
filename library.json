@@ -1,0 +1,31 @@
+{
+  "name": "Arduino-BLEUart",
+  "version": "0.0.1",
+  "description": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jcu-eresearch/Arduino-BLEUart.git"
+  },
+  "keywords": [
+    "BLE"
+  ],
+  "authors": [
+    {
+      "name": "NigelB"
+    }
+  ],
+  "frameworks": [
+    "arduino"
+  ],
+  "dependencies": {
+    "ArduinoBLE": ">=1.2.1"
+  },
+  "license": "GPL-3.0",
+  "libArchive": false,
+  "build": {
+    "srcFilter": [
+      "+<*.cpp>",
+      "+<*.h>"
+    ]
+  }
+}
