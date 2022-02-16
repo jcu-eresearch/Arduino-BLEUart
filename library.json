@@ -1,7 +1,7 @@
 {
   "name": "Arduino-BLEUart",
   "version": "0.0.1",
-  "description": "",
+  "description": "Arduino-BLEUart uses the ArduinoBLE library to create a BLE UART that with the same Characteristics as the Nordic UART Service (NUS).",
   "repository": {
     "type": "git",
     "url": "https://github.com/jcu-eresearch/Arduino-BLEUart.git"

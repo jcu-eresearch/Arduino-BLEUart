@@ -47,6 +47,11 @@ bool ArduinoBLEUart::begin(bool blocking)
     return true;
 }
 
+void ArduinoBLEUart::end()
+{
+    
+}
+
 ArduinoBLEUart::~ArduinoBLEUart()
 {
 
@@ -68,7 +73,12 @@ int ArduinoBLEUart::available()
 {
     if(device != NULL)
     {
-        device->connected();
+        if(!device->connected())
+        {
+            return ArduinoBLEUart_Disconnected;
+        }
+    }else{
+        return ArduinoBLEUart_NullPTR;
     }
     return !buffer.empty();
 }
@@ -95,12 +105,9 @@ int ArduinoBLEUart::peek()
 
 size_t ArduinoBLEUart::write(uint8_t value)
 {
-    // if(value == 13)
-    // {
-    //     return 1;
-    // }
     return txCharacteristic.writeValue(value);
 }
+
 
 void ArduinoBLEUart::setdevice(BLEDevice *central)
 {
