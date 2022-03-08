@@ -45,17 +45,17 @@ bool ArduinoBLEUart::begin(bool blocking)
         }
     });    
     return true;
-}
+};
 
 void ArduinoBLEUart::end()
 {
     
-}
+};
 
 ArduinoBLEUart::~ArduinoBLEUart()
 {
-
-}
+    callback_object = nullptr;
+};
 
 void ArduinoBLEUart::handle_rx_event(BLEDevice &device, BLECharacteristic &characteristic)
 {
@@ -65,9 +65,9 @@ void ArduinoBLEUart::handle_rx_event(BLEDevice &device, BLECharacteristic &chara
     const char *buf = v.c_str();
     for(size_t i = 0; i < v.length(); i++)
     {
-       buffer.push(buf[i]);
+       rx_buffer.push(buf[i]);
     }
-}
+};
 
 int ArduinoBLEUart::available()
 {
@@ -80,36 +80,80 @@ int ArduinoBLEUart::available()
     }else{
         return ArduinoBLEUart_NullPTR;
     }
-    return !buffer.empty();
-}
+    return !rx_buffer.empty();
+};
 
 int ArduinoBLEUart::read()
 {
    
-    if(!blocking && buffer.empty()){
+    if(!blocking && rx_buffer.empty()){
         return -1;
     }
-    int result = buffer.front();
-    buffer.pop();
+    int result = rx_buffer.front();
+    rx_buffer.pop();
     return result;
-}
+};
 
 int ArduinoBLEUart::peek()
 {
-    if(!blocking && buffer.empty()){
+    if(!blocking && rx_buffer.empty()){
         return -1;
     }
-    int result = buffer.front();
+    int result = rx_buffer.front();
     return result;    
-}
+};
 
 size_t ArduinoBLEUart::write(uint8_t value)
 {
-    return txCharacteristic.writeValue(value);
-}
+    Serial.println("write");
+    tx_buffer.push(value);
+    return 1;
+};
 
+size_t ArduinoBLEUart::write(const uint8_t *buffer, size_t size)
+{
+    for(size_t i = 0; i < size; i++)
+    {
+        tx_buffer.push(buffer[i]);
+    }
+    return _flush();
+};    
+
+void ArduinoBLEUart::flush() {
+    _flush();
+    if (tx_buffer.size() != 0)
+    {
+        status = ArduinoBLEUart_Buffer_Not_Empty;
+    }    
+};
+
+size_t ArduinoBLEUart::_flush()
+{
+    size_t count = 0;
+    size_t tx_size = tx_buffer.size();
+    size_t block_size = tx_size > this->buffer_size?this->buffer_size:tx_size;
+    char *data = (char*)malloc(block_size+1);
+    memset(data, 0, block_size+1);
+    while(!tx_buffer.empty()){
+        size_t tmp_size = tx_buffer.size() > block_size?block_size:tx_buffer.size();
+        for(int i = 0; i < tmp_size; i++)
+        {
+            data[i] = tx_buffer.front();
+            tx_buffer.pop();
+            count++;
+        }
+        txCharacteristic.writeValue(data, tmp_size);
+    }
+    free(data);
+    return count;
+}
 
 void ArduinoBLEUart::setdevice(BLEDevice *central)
 {
     this->device = central;
-}
+};
+
+enum ArduinoBLEUart_Status_e ArduinoBLEUart::getStatus()
+{
+    return this->status;
+};

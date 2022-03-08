@@ -27,17 +27,23 @@
 
 enum ArduinoBLEUart_Status_e
 {
+    ArduinoBLEUart_OK = 1,
     ArduinoBLEUart_NullPTR = -1,
     ArduinoBLEUart_Disconnected = -2,
+    ArduinoBLEUart_Buffer_Not_Empty = -3,
 };
 
 class ArduinoBLEUart: public Stream
 {
     BLEService uartService;
     BLEStringCharacteristic rxCharacteristic;
-    BLEByteCharacteristic txCharacteristic;
+    BLECharacteristic txCharacteristic;
     
-    std::queue<char> buffer;
+    std::queue<char> rx_buffer;
+    std::queue<char> tx_buffer;
+    int buffer_size;
+    enum ArduinoBLEUart_Status_e status;
+    
     private:
         void handle_rx_event(BLEDevice &device, BLECharacteristic &characteristic);
         bool blocking = false;
@@ -46,12 +52,14 @@ class ArduinoBLEUart: public Stream
         ArduinoBLEUart(int buffer_size):
             uartService("6E400001-B5A3-F393-E0A9-E50E24DCCA9E"),
             rxCharacteristic("6E400002-B5A3-F393-E0A9-E50E24DCCA9E", BLEWrite | BLENotify, buffer_size),
-            txCharacteristic("6E400003-B5A3-F393-E0A9-E50E24DCCA9E", BLERead | BLENotify)
+            txCharacteristic("6E400003-B5A3-F393-E0A9-E50E24DCCA9E", BLERead | BLENotify, buffer_size)
         {
             uartService.addCharacteristic(rxCharacteristic);
             uartService.addCharacteristic(txCharacteristic);
             Serial.println("ArduinoBLEUart");
             device = NULL;
+            this->buffer_size = buffer_size;
+            status = ArduinoBLEUart_OK;
         }
         ~ArduinoBLEUart();
         bool begin(bool blocking = false);
@@ -61,7 +69,13 @@ class ArduinoBLEUart: public Stream
         int read();
         int peek();
         size_t write(uint8_t value);
+        size_t write(const uint8_t *buffer, size_t size);
+
+    
+        virtual void flush();        
+        size_t _flush();    
         void setdevice(BLEDevice *central);
+        enum ArduinoBLEUart_Status_e getStatus();
 
 };
 
