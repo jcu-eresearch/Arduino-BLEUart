@@ -23,7 +23,8 @@
 #define ARGOSTAG_ARDUINO_BLEUART_H
 
 #include "ArduinoBLE.h"
-#include "queue"
+#include <queue>
+#include <vector>
 
 enum ArduinoBLEUart_Status_e
 {
@@ -31,7 +32,15 @@ enum ArduinoBLEUart_Status_e
     ArduinoBLEUart_NullPTR = -1,
     ArduinoBLEUart_Disconnected = -2,
     ArduinoBLEUart_Buffer_Not_Empty = -3,
+    ArduinoBLEUart_Buffer_Empty = -4,
 };
+
+// class ArduinoBLEUartCallback
+// {
+//     public:
+//         virtual void onDisconnect(ArduinoBLEUart_Status_e status) = 0;
+//         virtual ~ArduinoBLEUartCallback(){};
+// };
 
 class ArduinoBLEUart: public Stream
 {
@@ -41,15 +50,16 @@ class ArduinoBLEUart: public Stream
     
     std::queue<char> rx_buffer;
     std::queue<char> tx_buffer;
-    int buffer_size;
+    size_t buffer_size;
     enum ArduinoBLEUart_Status_e status;
     
     private:
         void handle_rx_event(BLEDevice &device, BLECharacteristic &characteristic);
         bool blocking = false;
         BLEDevice *device = NULL;
+        bool tx_error = false;
     public:
-        ArduinoBLEUart(int buffer_size):
+        ArduinoBLEUart(size_t buffer_size):
             uartService("6E400001-B5A3-F393-E0A9-E50E24DCCA9E"),
             rxCharacteristic("6E400002-B5A3-F393-E0A9-E50E24DCCA9E", BLEWrite | BLENotify, buffer_size),
             txCharacteristic("6E400003-B5A3-F393-E0A9-E50E24DCCA9E", BLERead | BLENotify, buffer_size)
@@ -60,11 +70,18 @@ class ArduinoBLEUart: public Stream
             device = NULL;
             this->buffer_size = buffer_size;
             status = ArduinoBLEUart_OK;
+
         }
-        ~ArduinoBLEUart();
+        virtual ~ArduinoBLEUart();
         bool begin(bool blocking = false);
         void end();
 
+        /**
+         * @brief The number of bytes that have been received and are in the buffer.
+         * 
+         * @return int 0 or more available bytes
+         *            -2 the BLE connection has been disconnected. 
+         */
         int available();
         int read();
         int peek();
@@ -76,7 +93,6 @@ class ArduinoBLEUart: public Stream
         size_t _flush();    
         void setdevice(BLEDevice *central);
         enum ArduinoBLEUart_Status_e getStatus();
-
 };
 
 #endif

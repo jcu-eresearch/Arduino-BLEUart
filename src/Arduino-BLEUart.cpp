@@ -49,7 +49,7 @@ bool ArduinoBLEUart::begin(bool blocking)
 
 void ArduinoBLEUart::end()
 {
-    
+    device = nullptr;
 };
 
 ArduinoBLEUart::~ArduinoBLEUart()
@@ -71,33 +71,37 @@ void ArduinoBLEUart::handle_rx_event(BLEDevice &device, BLECharacteristic &chara
 
 int ArduinoBLEUart::available()
 {
-    if(device != NULL)
+    if(device == NULL)
     {
+        return ArduinoBLEUart_NullPTR;
+    }else{
         if(!device->connected())
         {
             return ArduinoBLEUart_Disconnected;
         }
-    }else{
-        return ArduinoBLEUart_NullPTR;
     }
-    return !rx_buffer.empty();
+    return rx_buffer.size();
 };
 
 int ArduinoBLEUart::read()
 {
-   
-    if(!blocking && rx_buffer.empty()){
-        return -1;
-    }
-    int result = rx_buffer.front();
+    int result = peek();
     rx_buffer.pop();
     return result;
 };
 
 int ArduinoBLEUart::peek()
 {
+    if(device == nullptr)
+    {
+        return ArduinoBLEUart_NullPTR;
+    }
+    if(!device->connected())
+    {
+        return ArduinoBLEUart_Disconnected;
+    }
     if(!blocking && rx_buffer.empty()){
-        return -1;
+        return ArduinoBLEUart_Buffer_Empty;
     }
     int result = rx_buffer.front();
     return result;    
@@ -105,8 +109,26 @@ int ArduinoBLEUart::peek()
 
 size_t ArduinoBLEUart::write(uint8_t value)
 {
-    Serial.println("write");
+    if(device == nullptr)
+    {
+        return ArduinoBLEUart_NullPTR;
+    }
+    // Serial.print("write");
     tx_buffer.push(value);
+    if(value == 10 || value == 13 || tx_buffer.size() >= ((buffer_size * 3)/4))
+    {
+        Serial.print("FLUSH");
+        tx_error = false;
+        _flush();
+        if(tx_error)
+        {
+            return 0;    
+        }
+    }
+    if(!device->connected())
+    {
+        return 0;
+    }
     return 1;
 };
 
@@ -120,6 +142,7 @@ size_t ArduinoBLEUart::write(const uint8_t *buffer, size_t size)
 };    
 
 void ArduinoBLEUart::flush() {
+    status = ArduinoBLEUart_OK;
     _flush();
     if (tx_buffer.size() != 0)
     {
@@ -136,13 +159,20 @@ size_t ArduinoBLEUart::_flush()
     memset(data, 0, block_size+1);
     while(!tx_buffer.empty()){
         size_t tmp_size = tx_buffer.size() > block_size?block_size:tx_buffer.size();
-        for(int i = 0; i < tmp_size; i++)
+        for(size_t i = 0; i < tmp_size; i++)
         {
             data[i] = tx_buffer.front();
             tx_buffer.pop();
             count++;
         }
-        txCharacteristic.writeValue(data, tmp_size);
+        if(device != nullptr && device->connected()){
+            if(!txCharacteristic.writeValue(data, tmp_size))
+            {
+                tx_error = true;
+            }
+        }else{
+            tx_error = true;
+        }
     }
     free(data);
     return count;
