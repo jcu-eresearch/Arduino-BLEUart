@@ -66,7 +66,7 @@ class ArduinoBLEUart: public Stream
         {
             uartService.addCharacteristic(rxCharacteristic);
             uartService.addCharacteristic(txCharacteristic);
-            Serial.println("ArduinoBLEUart");
+            // Serial.println("ArduinoBLEUart");
             device = NULL;
             this->buffer_size = buffer_size;
             status = ArduinoBLEUart_OK;
